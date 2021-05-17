@@ -2,7 +2,8 @@
 This is a GitHub Repository for developed projects completed as part of academic coursework and larger projects. 
 
 ## Projects: 
-- [Are Feminists More Unhappy?](https://github.com/connixu/studious_pancake/blob/main/QMSS%205015-Independent%20Project.pdf): an exploration using various regression techniques on the World Values Survey to explore whether women were more or less unhappy (controlling for factors such as the Gini Index, etc.)
+- [Are Feminists More Unhappy?](https://github.com/connixu/studious_pancake/blob/main/QMSS%205015-Independent%20Project.pdf): an exploration using various regression techniques on the World Values Survey (Wave 6) to explore whether women were more or less unhappy (controlling for factors such as the Gini Index, Marital Status, etc.) 
+  - Code compiled in R; clean code file forthcoming. 
 
 - Student Debt Visualization Website (April 2021)
 See shiny.io website [here](https://ukipv4-connie-xu.shinyapps.io/Group_G_HigherEd_Review/)
