@@ -1,5 +1,5 @@
 # studious_pancake 🥞
-This is a GitHub Repository for developed projects completed as part of academic coursework and larger projects. 
+This is a GitHub Repository for developed projects completed as part of academic coursework and smaller-scale individual projects. 
 
 ## Projects: 
 - [Are Feminists More Unhappy?](https://github.com/connixu/studious_pancake/tree/main/Feminist_Happiness):  
