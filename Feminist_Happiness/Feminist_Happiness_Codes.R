@@ -168,6 +168,13 @@ controlvars <- wvs6[c('married','children','age','breadwin','incomescl','Equalit
 iv <- wvs6[c('menecon1','menecon2','wmnsrts','nowmnhome')]
 iv <- na.omit(iv)
 
+# Wave 6 Variable: Womens Rights (Squared) for Quadratic Term (for testing for fit) 
+wvs6$wmnsrtssq<-wvs6$wmnsrts^2
+wvs6$econeq2sq<-wvs6$econeq2^2
+
+# Wave 6 Variable: Logged Economic Equality Term (for testing for fit) 
+wvs6$econeqln <- log(wvs6$econeq2)
+
 # -----------------------------------------------------------------------------
 
 # Descriptive Statistics 
@@ -175,43 +182,47 @@ stargazer(controlvars, type = "text", title="Descriptive statistics", digits=1, 
 stargazer(iv, type = "text", title="Descriptive statistics", digits=1, out="table1.txt")
 stargazer(dv, type = "text", title="Descriptive statistics", digits=1, out="table1.txt")
 
+
+# Means and Tables 
+predictrpurchase = predict(model,datatest)
+table(datatest$rpurchase, predictrpurchase)
+mean(as.character(datatest$rpurchase) != as.character(predictrpurchase))
+
+# Visualize Gender Inequality Index as histogram; 20 breaks 
+hist(wvs6$gii,breaks=20)
+hist(wvs6$satisfied)
+
 # -----------------------------------------------------------------------------
 
 # Initial OLS Models 
 lm1a <- lm(satisfied~econeq1+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
-
 lm1b <- lm(satisfied~econeq2+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
-
 lm2a <- lm(happy~econeq1+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
-
 lm2b <- lm(happy~econeq2+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
-
-
+# Visualize Initial OLS Models 
 stargazer(lm1a, lm1b, lm2a, lm2b, title="Initial - Simple OLS Models", type='text',align=TRUE)
-summary(lm1b)
 
 
-# Refined model 1 - regression with controls 
+# Refined Model 1 - regression with controls 
 lm3 <- lm(satisfied~econeq2+housewifeeq+wmnsrts+age+married+children+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
-
 stargazer(lm3, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
+
 # Refined model 2 - regression with controls (setting Marriage as.factor bc all the categoreis are not in order )
-wvs6$econeqln <- log(wvs6$econeq2)
+
 lm4 <- lm(happiness~econeqln+wmnsrts+as.factor(X007)+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
-
 stargazer(lm4, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
 # Same as above model
@@ -234,16 +245,12 @@ wvstime$agesq<-wvstime$age^2
 lm7 <- lm(satisfied~econeq2+wmnsrts+age+incomescl+giihilo+econeq2:giihilo, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
-
+# Visualize lm7 for project paper  
 stargazer(lm7, title="Initial - Simple OLS Models", type='text',align=TRUE)
-
-wvs6$wmnsrtssq<-wvs6$wmnsrts^2
-wvs6$econeq2sq<-wvs6$econeq2^2
 
 lm8 <- lm(satisfied~econeq2+wmnsrts+age+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
-
 stargazer(lm8, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
 # Logit 
@@ -258,25 +265,12 @@ summary(vglm1)
 # Ordered Logit - Satisfied vs. Economic Equality + Womens Rights + GII + Income (Scale)
 model <- polr(as.factor(satisfied) ~ econeq2+wmnsrts+age+incomescl+giipts, data = wvs6, Hess = TRUE)
 
-# Means and Tables 
-predictrpurchase = predict(model,datatest)
-table(datatest$rpurchase, predictrpurchase)
-mean(as.character(datatest$rpurchase) != as.character(predictrpurchase))
-
-
-# Visualize Gender Inequality Index as histogram; 20 breaks 
-hist(wvs6$gii,breaks=20)
-hist(wvs6$satisfied)
-
-
 # Attempted to run Panel Data - First Differences 
 plm1 <- plm(satisfied~econeq2+wmnsrts+age+incomescl+giipts, index = c("S007","S002"),
             model="fd", data=wvspanel, subset = !is.na(satisfied)&!is.na(age)
             &!is.na(econeq2)&!is.na(incomescl)&!is.na(giipts)&!is.na(wmnsrts))
-
 summary(plm1)
 
 plm2 <- plm(polhitok~sei+as.factor(race)+sex+year, index = c("idnum", "panelwave"), 
             model="fd", data=gsspanel, 
             subset = !is.na(polhitok)&!is.na(race)&!is.na(sex))
-
