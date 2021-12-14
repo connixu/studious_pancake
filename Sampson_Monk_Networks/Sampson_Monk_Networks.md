@@ -79,7 +79,7 @@ remained.end <- c(0,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0)
 cloister_outcomes <- data.frame(monks, voluntarily.left.first, expelled, remained.end)
 ```
 
-**Characteristics of SAMPLK1 **  
+**Characteristics of SAMPLK1**  
 As indicated in the README, SAMPLK1 consists of rankings of liking for other
 monks in the cloister prior to the conflict. As shown in the network
 density below, it appears that we have one more ranking than expected
