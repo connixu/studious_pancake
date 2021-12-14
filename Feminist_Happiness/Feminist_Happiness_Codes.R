@@ -18,7 +18,7 @@ require(ggplot2)
 require(MASS)
 require(Hmisc)
 require(reshape2)
-
+library(VGAM)
 
 # Other Functions Used 
 # First Diff Model 
@@ -46,57 +46,8 @@ firstD <- function(var, group, df){
   D.var <- by(V, G, fD)
   unlist(D.var)
 }
-
-# Load WVS R Data File - Time Series Data 
-  # Womens' Equality Measure (Country to Country)  
-ei <- readxl::read_xlsx("NationalWmnEquality.xlsx")
-
-  # Time Series Data: World Values Survey 
-load('WVS_TimeSeries_R_v1_5.rdata')
-wvstime <- WVS_TimeSeries_R_v1_5 %>% dplyr::rename(Country = S003)
-rm(WVS_TimeSeries_R_v1_5)                            
-
-# Filter for World Value Survey Respondents with 'Happiness' question answered. 
-wvstime <- wvstime[wvstime$S002, ]
-
-
-# Remove NA Records - All Negative Number Responses in df are n/a or missing; removed for this project. 
-wvstime[wvstime <= -1 ] <- NA
-wvstime = rename(wvstime,c('unsid'='S006'))
-
-ei <- ei %>% dplyr::rename(Country = Label)
-
-wvstime <- wvstime %>% 
-
-wvstime <- left_join(ei, wvstime, by = "Country")
-wvstime <- rename(wvstime,c('gii'='Equality Index'))
-wvstime$giipts<- wvstime$gii*100
-
-summary(wvstime$giipts)
-
-
-# Setting High vs Low Gender Inequality with thresholds of 38.7 and 50 respectively. 
-wvstime$giihilo[wvstime$giipts > 38.7]<-1
-wvstime$giihilo[wvstime$giipts <= 38.7]<-0
-
-wvstime$giihilo1[wvstime$giipts > 50]<-1
-wvstime$giihilo1[wvstime$giipts <= 50]<-0
-
-
-
+# Data Normalization
 normalized <- function(x, ...) {(x - min(x, ...)) / (max(x, ...) - min(x, ...))}
-
-wvstime$satisfied <- wvstime$A170
-wvstime$satnot[wvstime$satisfied >= 5]<-1
-wvstime$satnot[wvstime$satisfied < 5]<-0
-summary(wvstime$satnot)
-
-wvstime$happy <- 5-wvstime$A008
-summary(wvs$happy)
-
-wvstime$happy
-wvstime$A008
-
 normalized<-function(y) {
   
   x<-y[!is.na(y)]
@@ -108,10 +59,50 @@ normalized<-function(y) {
   return(y)
 }
 
+# -----------------------------------------------------------------------------
+
+# Load WVS R Data File - Time Series Data 
+  # Womens' Equality Measure (Country to Country)  
+ei <- readxl::read_xlsx("NationalWmnEquality.xlsx")
+
+  # Time Series Data: World Values Survey 
+load('WVS_TimeSeries_R_v1_5.rdata')
+wvstime <- WVS_TimeSeries_R_v1_5 %>% dplyr::rename(Country = S003)
+rm(WVS_TimeSeries_R_v1_5)                            
+
+# -----------------------------------------------------------------------------
+# Remove NA etc. 
+wvstime <- wvstime[wvstime$S002, ] # Remove NA Records - No Blank or NaN records within 'Happiness' Column 
+wvstime[wvstime <= -1 ] <- NA # Remove NA Records - All Negative Number Responses in df are n/a or missing; removed for this project. 
+wvspanel <- wvstime[wvstime$S002 %in% c(4,5,6), ]
+wvspanel<- wvspanel[wvspanel$X001 %in% c(2), ]
+wvspanel <- wvstime[wvstime$S001 %in% c(2), ]
+wvspanel <- na.omit(wvspanel)
+
+# Joing WVS Time and Equality Index 
+wvstime <- dplyr::rename(wvstime,c('unsid'='S006'))
+ei <- ei %>% dplyr::rename(Country = Label)
+wvstime <- left_join(ei, wvstime, by = "Country")
+wvstime <- rename(wvstime,c('gii'='Equality Index'))
+wvstime$giipts<- wvstime$gii*100
+
+# Setting High vs Low Gender Inequality with thresholds of 38.7 and 50 respectively. 
+wvstime$giihilo[wvstime$giipts > 38.7]<-1
+wvstime$giihilo[wvstime$giipts <= 38.7]<-0
+wvstime$giihilo1[wvstime$giipts > 50]<-1
+wvstime$giihilo1[wvstime$giipts <= 50]<-0
+
+# Creating Binary Variable versions of existent likert scale variables (for logit models)
+wvstime$satisfied <- wvstime$A170
+wvstime$satnot[wvstime$satisfied >= 5]<-1
+wvstime$satnot[wvstime$satisfied < 5]<-0
+
+# Reverse Coding Happiness Variable 
+wvstime$happy <- 5-wvstime$A008
 
 # Recoding Variables
 
-  # Independent Variable: Happiness 
+  # Dependent Variable: Happiness 
 wvstime$happy1 <- scales::rescale(wvstime$happy, to=c(0,1)) # How happy are you (rescaled)
 summary(wvstime$happy1) 
 
@@ -126,7 +117,7 @@ cor(wvs6$happy1, wvs6$satisfied1,  method = "pearson", use = "complete.obs") # P
 
 dv <- wvs6[c('happy','satisfied')]
 
-# Independent Variable 1: Democracy: Women have the same rights as men (10 Pt Likert)
+  # Independent Variable 1: Democracy: Women have the same rights as men (10 Pt Likert)
 wvstime$wmnsrts <- wvstime$E233 
 summary(wvstime$C001)
 wvstime$C001[wvstime$C001==1]<-4
@@ -136,71 +127,61 @@ wvstime$C001 <- 4-wvstime$C001
 wvstime$D066_B[wvstime$D066_B==1]<-4
 wvstime$D066_B <- wvstime$D066_B-1
 wvstime$D066_B <- 4-wvstime$D066_B
-summary(wvstime$D066_B)
 
-
-# econeq1: men are more important to the economy 
+  # Independent Variable 2: econeq1: men are more important to the economy 
 wvstime$econeq1 <- (wvstime$C001+wvstime$D066_B)/2
-summary(wvstime$nowmnhome)
-wvstime$econeq2 <- (wvstime$D061+wvstime$D059+wvs6$D078)/3
 
+  # Independent Variable 2: econeq1: men are more important to the economy 
+wvstime$econeq2 <- (wvstime$D061+wvstime$D059+wvs6$D078)/3
+  # Independent Variable 2: econeq1: men are more important to the economy (Recoded as binary)
 wvstime$econeq3[wvstime$econeq2==1]<-0
 wvstime$econeq3[wvstime$econeq2==2]<-0
 wvstime$econeq3[wvstime$econeq2==3]<-1
 wvstime$econeq3[wvstime$econeq2==4]<-1
 
+  # Independent Variable 3: nowmnhome: Being a housewife is just as fulfilling as working for pay. (4 Scale Likert)
 wvstime$nowmnhome <-wvstime$D057
 wvstime$housewifeeq<-5-wvstime$nowmnhome
 
-iv <- wvs6[c('menecon1','menecon2','wmnsrts','nowmnhome')]
-iv <- na.omit(iv)
-
-
 wvstime$incomescl <- wvstime$X047
-summary(wvstime$incomescl)
 
-# Economic Feminism: Women as Breadwinners 
+  # Control 1: Economic Feminism: Women as Breadwinners 
 wvstime$breadwin <- wvstime$X040
 wvstime$breadwin[wvstime$breadwin==2]<-0
 summary(wvstime$breadwin)
 
-# Recoding 'Widowed' etc to ever been married 
+  # Control 2: Married 
+  # Recoding 'Widowed' etc to ever been married 
 wvstime$married[wvstime$X007==6]<-0
 wvstime$married[wvstime$X007==5]<-1
 wvstime$married[wvstime$X007==4]<-1
 wvstime$married[wvstime$X007==2]<-1
 wvstime$married[wvstime$X007==3]<-1 
-summary(wvstime$married)
 
-#Age and Children Columns (Rename)
+# Age and Children Columns (Rename)
 wvstime <- wvs %>% dplyr::rename(age = X003) %>% dplyr::rename(children = X011)
 
-#Gathered Control Variables 
-controlvars <- wvs6[c('married','children','age','breadwin','incomescl','Equality Index')]
-
+# Time Series Reduced to only Wave 6
 wvs6 <- wvstime[wvstime$S002 %in% c(6), ]
 wvs6 <- wvs6[wvs6$X001 %in% c(2), ]
+controlvars <- wvs6[c('married','children','age','breadwin','incomescl','Equality Index')]
+iv <- wvs6[c('menecon1','menecon2','wmnsrts','nowmnhome')]
+iv <- na.omit(iv)
 
-wvspanel <- wvstime[wvstime$S002 %in% c(4,5,6), ]
-wvspanel<- wvspanel[wvspanel$X001 %in% c(2), ]
-wvspanel <- wvstime[wvstime$S001 %in% c(2), ]
+# -----------------------------------------------------------------------------
 
-wvspanel <- na.omit(wvspanel)
-
-
-install.packages("stargazer")
-library(stargazer)
+# Descriptive Statistics 
 stargazer(controlvars, type = "text", title="Descriptive statistics", digits=1, out="table1.txt")
-
 stargazer(iv, type = "text", title="Descriptive statistics", digits=1, out="table1.txt")
-
 stargazer(dv, type = "text", title="Descriptive statistics", digits=1, out="table1.txt")
 
+# -----------------------------------------------------------------------------
 
-#4 initial regressions 
+# Initial OLS Models 
 lm1a <- lm(satisfied~econeq1+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
+
 lm1b <- lm(satisfied~econeq2+nowmnhome+wmnsrts, data=wvs6, 
            subset = !is.na(satisfied)&!is.na(econeq1)
            &!is.na(econeq2)&!is.na(nowmnhome)&!is.na(wmnsrts)&!is.na(happy))
@@ -218,14 +199,14 @@ stargazer(lm1a, lm1b, lm2a, lm2b, title="Initial - Simple OLS Models", type='tex
 summary(lm1b)
 
 
-#final model 1 - regression with controls 
+# Refined model 1 - regression with controls 
 lm3 <- lm(satisfied~econeq2+housewifeeq+wmnsrts+age+married+children+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
 
 stargazer(lm3, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
-#final model 2 - regression with controls (setting Marriage as.factor bc all the categoreis are not in order )
+# Refined model 2 - regression with controls (setting Marriage as.factor bc all the categoreis are not in order )
 wvs6$econeqln <- log(wvs6$econeq2)
 lm4 <- lm(happiness~econeqln+wmnsrts+as.factor(X007)+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
@@ -233,22 +214,22 @@ lm4 <- lm(happiness~econeqln+wmnsrts+as.factor(X007)+incomescl+giipts, data=wvs6
 
 stargazer(lm4, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
-#same as above 
+# Same as above model
 lm5 <- lm(satisfied~econeq2+wmnsrts+as.factor(X007)+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
 stargazer(lm5, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
-
-
+# -----------------------------------------------------------------------------
 
 # Correlation Matrix Construction 
 to_correlate <- wvs6 %>% dplyr::select(age,children,married, incomescl, giipts) 
 correlation.matrix <- cor(na.omit(wvs6[c("age","children","married", "incomescl","giipts")]))
 stargazer(correlation.matrix, title="Correlation Matrix",type ='text' )
 
+# -----------------------------------------------------------------------------
 
-# Regression with Interaction Term 
+# Regressions with Interaction Term 
 wvstime$agesq<-wvstime$age^2
 lm7 <- lm(satisfied~econeq2+wmnsrts+age+incomescl+giihilo+econeq2:giihilo, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
@@ -259,25 +240,25 @@ stargazer(lm7, title="Initial - Simple OLS Models", type='text',align=TRUE)
 wvs6$wmnsrtssq<-wvs6$wmnsrts^2
 wvs6$econeq2sq<-wvs6$econeq2^2
 
-
 lm8 <- lm(satisfied~econeq2+wmnsrts+age+incomescl+giipts, data=wvs6, 
           subset = !is.na(satisfied)&!is.na(econeq1)
           &!is.na(econeq2)&!is.na(housewifeeq)&!is.na(wmnsrts)&!is.na(happy))
 
 stargazer(lm8, title="Initial - Simple OLS Models", type='text',align=TRUE)
 
-#made into a regular logit 
+# Logit 
 logit1 <- glm(satnot ~ econeq2+wmnsrts+age+incomescl+giipts, data = wvs6, family = propodds,maxit = 100)
 logit1 = glm(depressbi ~ firstgen + safeatschool+fmlyroutine, data=nls, family=binomial)
 summary(logit1)
 
-#ordinal logit 
-library(VGAM)
+# Ordinal logit 
 vglm1 <- vglm(satisfied ~ econeq2+wmnsrts+age+incomescl+giipts, data = wvs6, family = propodds)
 summary(vglm1)
 
+# Ordered Logit - Satisfied vs. Economic Equality + Womens Rights + GII + Income (Scale)
 model <- polr(as.factor(satisfied) ~ econeq2+wmnsrts+age+incomescl+giipts, data = wvs6, Hess = TRUE)
-summary(model)
+
+# Means and Tables 
 predictrpurchase = predict(model,datatest)
 table(datatest$rpurchase, predictrpurchase)
 mean(as.character(datatest$rpurchase) != as.character(predictrpurchase))
