@@ -1,13 +1,5 @@
-``` r
-dfmonks_SAMPLK1<-read.csv('sampson_agent_agent[SAMPLK1].csv',header = FALSE)
-dfmonks_SAMPLK1<-dfmonks_SAMPLK1[1:18]
-dfmonks_SAMPNIN<-read.csv('sampson_agent_agent[SAMPNIN].csv',header = FALSE)
-dfmonks_SAMPNIN <-dfmonks_SAMPNIN[1:18]
-dfmonks_SAMPLK3<-read.csv('sampson_agent_agent[SAMPLK3].csv',header = FALSE)
-dfmonks_SAMPLK3<-dfmonks_SAMPLK3[1:18]
-```
-
-### Introduction and Background
+# Sampson Monk Networks
+## Introduction and Background
 
 **Characteristics of Sampson Network Dataset**  
 The Sampson Monastery social network data \[1\] was collected by Vermont
@@ -28,19 +20,8 @@ look at when thinking about node centrality. However, because the
 network data and number of individuals in each outcome group are
 relatively small (potentially impacting statistical significance), I
 will be focusing primarily on differences in networks SAMPLK1 and
-SAMPNIN (Question 3b). Simple regressions with attribute data will be
-run to explore further in Question 4.*
-
-``` r
-#set up column names in chunk above - I will be applying these names to matrices as needed. 
-colnames = c("ROMUL_10","BONAVEN_5","AMBROSE_9","BERTH_6","PETER_4","LOUIS_11","VICTOR_8","WINF_12","JOHN_1","GREG_2","HUGH_14","BONI_15","MARK_7","ALBERT_16","AMAND_13","BASIL_3","ELIAS_17","SIMP_18")
-#Note that individuals with '0' in all three columns stayed in the cloister for a while and then left. To this point, I constructed a df to reflect whether the monks stayed, left, or remained in the end. 
-monks <- colnames
-voluntarily.left.first <-c(0,0,0,0,0,0,0,0,1,0,1,1,1,1,0,0,0,0)
-expelled <- c(0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1)
-remained.end <- c(0,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0)
-cloister_outcomes <- data.frame(monks, voluntarily.left.first, expelled, remained.end)
-```
+SAMPNIN. Simple regressions with attribute data will be
+run to explore further in .*
 
 The ties consist of how *each* of the monks rank one another -
 specifically, it asks each monk to rank their esteem, liking, and
@@ -77,8 +58,29 @@ have 100% density in the ties. In fact, assuming that the monks have
 followed the guidelines of this study, the network density should be
 somewhat consistent at 3/17 or 0.18.
 
+*code snippets: load and set up data* 
+``` r
+dfmonks_SAMPLK1<-read.csv('sampson_agent_agent[SAMPLK1].csv',header = FALSE)
+dfmonks_SAMPLK1<-dfmonks_SAMPLK1[1:18]
+dfmonks_SAMPNIN<-read.csv('sampson_agent_agent[SAMPNIN].csv',header = FALSE)
+dfmonks_SAMPNIN <-dfmonks_SAMPNIN[1:18]
+dfmonks_SAMPLK3<-read.csv('sampson_agent_agent[SAMPLK3].csv',header = FALSE)
+dfmonks_SAMPLK3<-dfmonks_SAMPLK3[1:18]
+```
+
+``` r
+#set up column names in chunk above - I will be applying these names to matrices as needed. 
+colnames = c("ROMUL_10","BONAVEN_5","AMBROSE_9","BERTH_6","PETER_4","LOUIS_11","VICTOR_8","WINF_12","JOHN_1","GREG_2","HUGH_14","BONI_15","MARK_7","ALBERT_16","AMAND_13","BASIL_3","ELIAS_17","SIMP_18")
+#Note that individuals with '0' in all three columns stayed in the cloister for a while and then left. To this point, I constructed a df to reflect whether the monks stayed, left, or remained in the end. 
+monks <- colnames
+voluntarily.left.first <-c(0,0,0,0,0,0,0,0,1,0,1,1,1,1,0,0,0,0)
+expelled <- c(0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,1,1)
+remained.end <- c(0,1,1,1,0,1,0,0,0,0,0,0,0,0,0,0,0,0)
+cloister_outcomes <- data.frame(monks, voluntarily.left.first, expelled, remained.end)
+```
+
 **Characteristics of SAMPLK1 **  
-As indicated above, SAMPLK1 consists of rankings of liking for other
+As indicated in the README, SAMPLK1 consists of rankings of liking for other
 monks in the cloister prior to the conflict. As shown in the network
 density below, it appears that we have one more ranking than expected
 (the density value is higher than expected, indicating that there may be
@@ -423,7 +425,7 @@ Below is the cloister centrality for **SAMPNIN**. I looked at incoming
 degree centrality, closeness centrality, and betweenness centrality. I
 chose not to normalize my measures because the network should not be
 substantially different given that the dataset and nomination
-constraints are comparable to in Question 2.
+constraints are comparable to the previous findings of **SAMPLK1**. 
 
 *Note: For this section, I will not have as much discussion about the
 general principles underlying the centrality measures - I will assume
@@ -647,7 +649,7 @@ summary(glm(expelled ~ in.deg_liked + in.deg_nin, cloister_outcomes_3,family = "
     ## 
     ## Number of Fisher Scoring iterations: 5
 
-As I hypothesized at first (in Question 1), I think that the small size
+As I hypothesized at first, I think that the small size
 of the cloisters has led to really low p-values for most coefficients in
 my two models - all but the coefficient for **in-deg nin** vs expulsion
 were not even statistically significant at the 90% level.
