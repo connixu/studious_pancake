@@ -65,7 +65,7 @@ normalized<-function(y) {
   # Womens' Equality Measure (Country to Country)  
 ei <- readxl::read_xlsx("NationalWmnEquality.xlsx")
 
-  # Time Series Data: World Values Survey 
+  # Time Series Data: World Values Survey - please unzip the zip file within this folder to use rdata. 
 load('WVS_TimeSeries_R_v1_5.rdata')
 wvstime <- WVS_TimeSeries_R_v1_5 %>% dplyr::rename(Country = S003)
 rm(WVS_TimeSeries_R_v1_5)                            
